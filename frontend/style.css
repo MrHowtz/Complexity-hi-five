@@ -1,0 +1,39 @@
+/* Basic styling for the entire page */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f0f8ff;
+}
+
+/* Center container for content */
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    text-align: center;
+}
+
+/* Styling for the header */
+header {
+    background-color: #0073e6;
+    color: white;
+    padding: 20px 0;
+}
+
+/* Margin for the main section */
+main {
+    margin-top: 20px;
+}
+
+/* Ensure canvas fits within container */
+canvas {
+    max-width: 100%;
+}
+
+/* Styling for the footer */
+footer {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #666;
+}

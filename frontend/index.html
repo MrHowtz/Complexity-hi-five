@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heart Monitor</title>
+    <!-- Link to the CSS file -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Heart Monitor</h1>
+        </header>
+        <main>
+            <!-- File upload input -->
+            <input type="file" id="fileInput" accept=".txt,.csv" />
+            <button id="uploadButton">Upload File</button>
+            <!-- Canvas for heart rate chart -->
+            <canvas id="heartChart"></canvas>
+            <!-- Div for displaying textual analysis -->
+            <div id="analysis"></div>
+        </main>
+        <footer>
+            <p>Developed by [Your Name]</p>
+        </footer>
+    </div>
+    <!-- Script links -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
