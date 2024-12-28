@@ -1,0 +1,42 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 16
+
+    - name: Install Dependencies
+      run: |
+        cd backend
+        npm install
+
+    - name: Build Docker Image
+      run: |
+        docker build -t ecg-backend ./backend
+
+    - name: Test Docker Image (Optional)
+      run: |
+        docker run -d -p 3000:3000 ecg-backend
+        sleep 5 # Wait for the container to start
+        curl -f http://localhost:3000/health || exit 1
+
+    - name: Deploy Docker Image (Optional)
+      # Add your deployment logic here, such as pushing to Docker Hub or deploying to a cloud service
+      run: echo "Deploy steps go here!"
+
+    - name: Clean Up (Optional)
+      run: |
+        docker ps -q --filter "ancestor=ecg-backend" | xargs -r docker stop
