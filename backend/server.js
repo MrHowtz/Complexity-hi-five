@@ -8,7 +8,7 @@ const WebSocket = require('ws');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// JSON file path for processed ECG data (GitHub Codespaces compatible)
+// JSON file path for processed ECG data
 const ecgDataPath = path.join(__dirname, '..', 'output', 'fhir_observations.json');
 
 // Middleware to parse JSON
@@ -23,6 +23,11 @@ app.get('/api/observations', (req, res) => {
         }
         res.json(JSON.parse(data));
     });
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', message: 'Service is running' });
 });
 
 // Create WebSocket server for real-time ECG data streaming
@@ -71,18 +76,8 @@ server.on('upgrade', (request, socket, head) => {
         wss.emit('connection', ws, request);
     });
 });
-// Import routes
-const observationsRouter = require('./routes/observations');
-app.use('/api/observations', observationsRouter);
 
-// Use the observations route
-app.use('/api/observations', observationsRouter);
-
-// Add a health check endpoint
-app.get('/health', (req, res) => {
-    res.json({ status: 'ok', message: 'Service is running' });
-});
-// Error handling middleware
+// Error handling middleware (must come after all other handlers)
 app.use((err, req, res, next) => {
     console.error('Error:', err.message);
     res.status(500).json({ error: 'An internal server error occurred.' });
