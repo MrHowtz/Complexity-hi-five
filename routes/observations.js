@@ -4,17 +4,16 @@ const path = require('path');
 
 const router = express.Router();
 
-// JSON file path for processed ECG data
-const ecgDataPath = path.join(__dirname, '..', '..', 'output', 'fhir_observations.json');
+const jsonFilePath = path.join(__dirname, '..', '..', 'output', 'fhir_observations.json');
 
-// REST API endpoint to fetch all historical ECG data
+// Endpoint to serve the JSON data
 router.get('/', (req, res) => {
-    fs.readFile(ecgDataPath, 'utf8', (err, data) => {
+    fs.readFile(jsonFilePath, 'utf8', (err, data) => {
         if (err) {
             console.error('Error reading file:', err);
-            return res.status(500).json({ error: 'Unable to read ECG data.' });
+            return res.status(500).json({ error: 'Unable to read observations file' });
         }
-        res.json(JSON.parse(data));
+        res.json(JSON.parse(data)); 
     });
 });
 
