@@ -73,6 +73,7 @@ server.on('upgrade', (request, socket, head) => {
 });
 // Import routes
 const observationsRouter = require('./routes/observations');
+app.use('/api/observations', observationsRouter);
 
 // Use the observations route
 app.use('/api/observations', observationsRouter);
