@@ -1,30 +1,30 @@
+import os
 import h5py
 import json
-import os
 
-# Constants
-SAMPLING_RATE = 100  # Hz
-time_step = 1 / SAMPLING_RATE
 
-# File paths (GitHub Codespaces compatible)
-h5_file_path = os.path.join(os.getcwd(), "data", "input_file.h5")
-output_json_path = os.path.join(os.getcwd(), "output", "fhir_observations.json")
+def find_h5_file(data_dir="data"):
+    for file_name in os.listdir(data_dir):
+        if file_name.endswith(".h5"):
+            return os.path.join(data_dir, file_name)
+    raise FileNotFoundError("No .h5 file found in the data directory")
 
-# Ensure output directory exists
-os.makedirs(os.path.dirname(output_json_path), exist_ok=True)
+# Paths
+h5_file_path = find_h5_file()  
+output_json_path = os.path.join("output", "fhir_observations.json")
 
-# Function to process the H5 file and generate FHIR-compliant JSON
 def process_h5_to_fhir(h5_file_path, output_json_path):
-    # Load the data from the H5 file
     with h5py.File(h5_file_path, "r") as h5_file:
         raw_group = h5_file["98:D3:21:FC:8B:12/raw"]
-        ecg_data = raw_group["channel_2"][:].flatten()  # ECG signal
-        sequence_numbers = raw_group["nSeq"][:].flatten()  # Sequence numbers
+        ecg_data = raw_group["channel_2"][:].flatten()
+        sequence_numbers = raw_group["nSeq"][:].flatten()
 
-    # Generate timestamps
+    # Generate timestamps based on sequence numbers
+    sampling_rate = 100  
+    time_step = 1 / sampling_rate
     timestamps = sequence_numbers * time_step
 
-    # Create FHIR Observation resources
+    # Create FHIR-compliant Observation resources
     fhir_observations = [
         {
             "resourceType": "Observation",
@@ -61,7 +61,8 @@ def process_h5_to_fhir(h5_file_path, output_json_path):
         for i, seq_num in enumerate(sequence_numbers)
     ]
 
-    # Save the FHIR observations to a JSON file
+    # Save the observations as a JSON file
+    os.makedirs(os.path.dirname(output_json_path), exist_ok=True)
     with open(output_json_path, "w") as json_file:
         json.dump(fhir_observations, json_file, indent=4)
 
