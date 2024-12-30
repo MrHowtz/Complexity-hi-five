@@ -1,0 +1,8 @@
+{
+  "devDependencies": {
+    "eslint": "^9.17.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.5"
+  }
+}

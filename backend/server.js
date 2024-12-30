@@ -3,6 +3,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const WebSocket = require('ws');
+const cors = require('cors'); // Added for CORS support
 
 // Create Express app
 const app = express();
@@ -11,8 +12,9 @@ const PORT = process.env.PORT || 3000;
 // JSON file path for processed ECG data
 const ecgDataPath = path.join(__dirname, '..', 'output', 'fhir_observations.json');
 
-// Middleware to parse JSON
+// Middleware to parse JSON and enable CORS
 app.use(express.json());
+app.use(cors()); // Enable CORS for all routes
 
 // REST API endpoint to fetch all historical ECG data
 app.get('/api/observations', (req, res) => {
