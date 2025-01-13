@@ -1,11 +1,44 @@
 body {
     font-family: Arial, sans-serif;
-    margin: 20px;
-    text-align: center;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+  }
+  
+  #chart {
+    width: 90%;
+    height: 500px;
+    margin: 20px auto;
+    border: 1px solid #ddd;
+    background-color: white;
+  }
+  
+  table {
+    margin-top: 20px;
+    width: 90%;
+    border-collapse: collapse;
+    margin: 0 auto;
+  }
+  
+  table, th, td {
+    border: 1px solid #ddd;
+    text-align: left;
+    padding: 8px;
+  }
+  
+  th {
+    background-color: #f2f2f2;
+  }
+  
+  td {
+    font-size: 14px;
+    color: #333;
+  }
+  #ecgCanvas {
+    display: block;
+    margin: 20px auto;
+    border: 1px solid #ddd;
+    background-color: #fff;
 }
 
-#chart {
-    margin: 0 auto;
-    width: 800px;
-    height: 400px;
-}
+  

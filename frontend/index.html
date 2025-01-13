@@ -1,22 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ECG Visualization</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-        }
-        canvas {
-            border: 1px solid black;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ECG Data Visualization</title>
+  <link rel="stylesheet" href="styles.css"> <!-- Link to external CSS -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
 <body>
-    <h1>ECG Visualization (Mock Data)</h1>
-    <canvas id="ecgCanvas" width="800" height="400"></canvas>
-    <script src="script.js"></script>
+
+  <!-- Canvas element for ECG chart -->
+  <canvas id="ecgCanvas"></canvas>
+
+  <!-- Table for ECG data -->
+  <table id="ecgTable">
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>ECG Value (mV)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Data rows will be populated dynamically -->
+    </tbody>
+  </table>
+
+  <script src="script.js"></script> <!-- Link to external JavaScript -->
 </body>
 </html>
