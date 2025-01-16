@@ -16,14 +16,31 @@ const ecgDataPath = path.join(__dirname, '..', 'output', 'fhir_observations.json
 app.use(express.json());
 app.use(cors()); // Enable CORS for all routes
 
-// REST API endpoint to fetch all historical ECG data
+// REST API endpoint to fetch relevant ECG data for the graph (time and value as normal values)
 app.get('/api/observations', (req, res) => {
     fs.readFile(ecgDataPath, 'utf8', (err, data) => {
         if (err) {
             console.error('Error reading file:', err);
             return res.status(500).json({ error: 'Unable to read ECG data.' });
         }
-        res.json(JSON.parse(data));
+
+        try {
+            const ecgData = JSON.parse(data);
+
+            // Map and filter the data to include only a sequential time and value
+            const filteredData = ecgData.map((d, index) => ({
+                time: index, // Use the index as the time value
+                value: d.valueQuantity.value // ECG value in mV
+            }));
+
+            // Log the filtered data before sending it
+            console.log("Filtered Data:", filteredData);
+
+            res.json(filteredData);
+        } catch (parseErr) {
+            console.error('Error parsing JSON:', parseErr);
+            res.status(500).json({ error: 'Error parsing ECG data.' });
+        }
     });
 });
 
@@ -39,7 +56,6 @@ const wss = new WebSocket.Server({ noServer: true });
 wss.on('connection', (ws) => {
     console.log('Client connected to WebSocket');
 
-    // Stream data at 1 reading per second
     let intervalId;
     fs.readFile(ecgDataPath, 'utf8', (err, data) => {
         if (err) {
@@ -53,7 +69,10 @@ wss.on('connection', (ws) => {
 
         intervalId = setInterval(() => {
             if (index < ecgData.length) {
-                ws.send(JSON.stringify(ecgData[index]));
+                ws.send(JSON.stringify({
+                    time: index, // Use the index as the time value
+                    value: ecgData[index].valueQuantity.value // ECG value in mV
+                }));
                 index++;
             } else {
                 clearInterval(intervalId);

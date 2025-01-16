@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', function () {
     const canvas = document.getElementById('ecgCanvas');
     const ctx = canvas.getContext('2d');
+    const tableBody = document.querySelector('#ecgTable tbody');
     const margin = { top: 20, right: 20, bottom: 50, left: 60 };
 
     // Dynamically resize the canvas to fit the screen width
@@ -16,30 +17,37 @@ document.addEventListener('DOMContentLoaded', function () {
         .then((data) => {
             console.log('Fetched data:', data);
 
-            if (Array.isArray(data.entry)) {
-                // Filter ECG data by LOINC code (85354-9 is for ECG)
-                const ecgData = data.entry.filter((d) =>
-                    d.resource.code.coding.some((c) => c.code === '85354-9')
-                );
+            // Extract times and values from the data
+            const times = data.map((d) => d.time); // Sequential time values
+            const values = data.map((d) => d.value); // ECG values
 
-                // Process only the first 5 data points
-                const firstFiveData = ecgData.slice(0, 5);
+            // Populate the table
+            populateTable(times, values);
 
-                // Extract times and values from the data
-                const times = firstFiveData.map((d) =>
-                    new Date(d.resource.effectiveDateTime).getTime()
-                );
-                const values = firstFiveData.map(
-                    (d) => d.resource.valueQuantity.value
-                );
-
-                // Render the chart with the extracted data
-                renderChart(times, values);
-            } else {
-                console.error('Expected an array in the "entry" property of the data.');
-            }
+            // Render the chart with the extracted data
+            renderChart(times, values);
         })
         .catch((error) => console.error('Error loading ECG data:', error));
+
+    function populateTable(times, values) {
+        // Clear existing table rows
+        tableBody.innerHTML = '';
+
+        // Add rows dynamically
+        times.forEach((time, index) => {
+            const row = document.createElement('tr');
+
+            const timeCell = document.createElement('td');
+            timeCell.textContent = time; // Sequential time value
+            row.appendChild(timeCell);
+
+            const valueCell = document.createElement('td');
+            valueCell.textContent = values[index].toFixed(2); // ECG value
+            row.appendChild(valueCell);
+
+            tableBody.appendChild(row);
+        });
+    }
 
     function renderChart(times, values) {
         if (times.length === 0 || values.length === 0) {
@@ -53,7 +61,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Calculate scales and axes ranges
         const { xScale, yScale, xTicks, yTicks } = calculateScales(times, values);
 
-        drawAxes(xScale, yScale, xTicks, yTicks, times, values); // Pass times/values explicitly
+        drawAxes(xScale, yScale, xTicks, yTicks, times, values);
         drawLineChart(xScale, yScale, times, values);
         drawDataPoints(xScale, yScale, times, values);
     }
@@ -73,7 +81,7 @@ document.addEventListener('DOMContentLoaded', function () {
             ((value - yMin) / (yMax - yMin)) * (canvas.height - margin.top - margin.bottom);
 
         // Generate ticks for axes
-        const xTicks = times.map((t) => new Date(t).toLocaleTimeString());
+        const xTicks = times.map((t) => t); // Use numeric time values directly
         const yTicks = Array.from(
             { length: 5 },
             (_, i) => yMin + (i * (yMax - yMin)) / 4
@@ -146,19 +154,10 @@ document.addEventListener('DOMContentLoaded', function () {
         fetch('http://localhost:3000/api/observations')
             .then((response) => response.json())
             .then((data) => {
-                if (Array.isArray(data.entry)) {
-                    const ecgData = data.entry.filter((d) =>
-                        d.resource.code.coding.some((c) => c.code === '85354-9')
-                    );
-                    const firstFiveData = ecgData.slice(0, 5);
-                    const times = firstFiveData.map((d) =>
-                        new Date(d.resource.effectiveDateTime).getTime()
-                    );
-                    const values = firstFiveData.map(
-                        (d) => d.resource.valueQuantity.value
-                    );
-                    renderChart(times, values);
-                }
+                const times = data.map((d) => d.time);
+                const values = data.map((d) => d.value);
+                populateTable(times, values);
+                renderChart(times, values);
             })
             .catch((error) => console.error('Error loading data during resize:', error));
     });
