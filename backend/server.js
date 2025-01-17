@@ -16,7 +16,13 @@ const ecgDataPath = path.join(__dirname, '..', 'output', 'fhir_observations.json
 app.use(express.json());
 app.use(cors()); // Enable CORS for all routes
 
-// REST API endpoint to fetch relevant ECG data for the graph (time and value as normal values)
+// Function to extract seconds from effectiveDateTime
+function extractSeconds(dateTime) {
+    const match = dateTime.match(/T.*:(\d{2})(?:\.\d+)?/); // Regex to capture seconds part
+    return match ? parseInt(match[1], 10) : null; // Return seconds as an integer
+}
+
+// REST API endpoint to fetch relevant ECG data for the graph (time, value, and seconds)
 app.get('/api/observations', (req, res) => {
     fs.readFile(ecgDataPath, 'utf8', (err, data) => {
         if (err) {
@@ -27,10 +33,11 @@ app.get('/api/observations', (req, res) => {
         try {
             const ecgData = JSON.parse(data);
 
-            // Map and filter the data to include only a sequential time and value
+            // Map and filter the data to include time, value, and seconds
             const filteredData = ecgData.map((d, index) => ({
                 time: index, // Use the index as the time value
-                value: d.valueQuantity.value // ECG value in mV
+                value: d.valueQuantity.value, // ECG value in mV
+                seconds: extractSeconds(d.effectiveDateTime), // Extracted seconds from effectiveDateTime
             }));
 
             // Log the filtered data before sending it
@@ -69,9 +76,11 @@ wss.on('connection', (ws) => {
 
         intervalId = setInterval(() => {
             if (index < ecgData.length) {
+                const d = ecgData[index];
                 ws.send(JSON.stringify({
                     time: index, // Use the index as the time value
-                    value: ecgData[index].valueQuantity.value // ECG value in mV
+                    value: d.valueQuantity.value, // ECG value in mV
+                    seconds: extractSeconds(d.effectiveDateTime), // Extracted seconds
                 }));
                 index++;
             } else {

@@ -1,44 +1,90 @@
+/* General styles */
 body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #f4f4f4;
-  }
-  
-  #chart {
-    width: 90%;
-    height: 500px;
-    margin: 20px auto;
-    border: 1px solid #ddd;
-    background-color: white;
-  }
-  
-  table {
-    margin-top: 20px;
-    width: 90%;
-    border-collapse: collapse;
-    margin: 0 auto;
-  }
-  
-  table, th, td {
-    border: 1px solid #ddd;
-    text-align: left;
-    padding: 8px;
-  }
-  
-  th {
-    background-color: #f2f2f2;
-  }
-  
-  td {
-    font-size: 14px;
-    color: #333;
-  }
-  #ecgCanvas {
-    display: block;
-    margin: 20px auto;
-    border: 1px solid #ddd;
-    background-color: #fff;
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f4f4f9;
+  color: #333;
 }
 
-  
+header.header {
+  text-align: center;
+  padding: 20px;
+  background-color: #3f51b5;
+  color: white;
+  margin-bottom: 20px;
+}
+
+header.header h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+header.header p {
+  margin: 5px 0;
+  font-size: 1rem;
+}
+
+main.main-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 auto;
+  max-width: 1200px;
+  padding: 20px;
+}
+
+/* Chart container */
+#chart-container {
+  width: 100%;
+  max-width: 800px;
+  margin-bottom: 30px;
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+}
+
+/* Table styles */
+#ecgTable {
+  width: 100%;
+  max-width: 800px;
+  border-collapse: collapse;
+  background-color: white;
+  border-radius: 5px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+#ecgTable th,
+#ecgTable td {
+  text-align: left;
+  padding: 10px;
+  border: 1px solid #ddd;
+}
+
+#ecgTable th {
+  background-color: #4caf50;
+  color: white;
+}
+
+#ecgTable tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  main.main-content {
+    padding: 10px;
+  }
+
+  #chart-container {
+    padding: 10px;
+  }
+
+  #ecgTable th, #ecgTable td {
+    font-size: 0.9rem;
+    padding: 8px;
+  }
+}

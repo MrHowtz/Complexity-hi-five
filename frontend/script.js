@@ -1,164 +1,166 @@
 document.addEventListener('DOMContentLoaded', function () {
-    const canvas = document.getElementById('ecgCanvas');
-    const ctx = canvas.getContext('2d');
-    const tableBody = document.querySelector('#ecgTable tbody');
-    const margin = { top: 20, right: 20, bottom: 50, left: 60 };
+    const apiEndpoint = 'http://localhost:3000/api/observations';
 
-    // Dynamically resize the canvas to fit the screen width
-    function resizeCanvas() {
-        canvas.width = window.innerWidth - 40; // Adjust width to fit the viewport
-        canvas.height = 400; // Keep height fixed
-    }
-    resizeCanvas();
-
-    // Fetch and process the ECG data
-    fetch('http://localhost:3000/api/observations')
+    // Fetch ECG data and render the chart
+    fetch(apiEndpoint)
         .then((response) => response.json())
         .then((data) => {
             console.log('Fetched data:', data);
 
-            // Extract times and values from the data
-            const times = data.map((d) => d.time); // Sequential time values
-            const values = data.map((d) => d.value); // ECG values
+            // Extract the values and seconds from the data
+            const uniqueData = [];
+            const seenSeconds = new Set();
 
-            // Populate the table
-            populateTable(times, values);
+            // Filter the data to include only the first occurrence of each second
+            data.forEach((d) => {
+                const seconds = d.seconds; // From the server-side data
+                if (!seenSeconds.has(seconds)) {
+                    seenSeconds.add(seconds);
+                    uniqueData.push(d); // Add unique second data
+                }
+            });
 
-            // Render the chart with the extracted data
-            renderChart(times, values);
+            // Now, we have data with unique seconds only
+            const values = uniqueData.map((d) => d.value);
+            const seconds = uniqueData.map((d) => d.seconds); // Use the seconds for the x-axis
+
+            // Render the D3 chart with the unique seconds
+            renderChart(seconds, values);
+
+            // Populate the table with data
+            populateTable(uniqueData);
         })
         .catch((error) => console.error('Error loading ECG data:', error));
 
-    function populateTable(times, values) {
-        // Clear existing table rows
-        tableBody.innerHTML = '';
+    function renderChart(seconds, values) {
+        const margin = { top: 20, right: 20, bottom: 40, left: 60 };
+        const width = 800 - margin.left - margin.right;
+        const height = 400 - margin.top - margin.bottom;
 
-        // Add rows dynamically
-        times.forEach((time, index) => {
+        // Clear existing SVG (if any)
+        d3.select('#chart').selectAll('*').remove();
+
+        // Create SVG container
+        const svg = d3
+            .select('#chart')
+            .append('svg')
+            .attr('width', width + margin.left + margin.right)
+            .attr('height', height + margin.top + margin.bottom)
+            .append('g')
+            .attr('transform', `translate(${margin.left},${margin.top})`);
+
+        // Define scales
+        const xScale = d3
+            .scaleLinear()
+            .domain([d3.min(seconds), d3.max(seconds)]) // x-axis spans from min to max second
+            .range([0, width]);
+
+        const yScale = d3
+            .scaleLinear()
+            .domain([d3.min(values), d3.max(values)]) // y-axis spans from min to max value
+            .range([height, 0]);
+
+        // Define axes
+        const xAxis = d3.axisBottom(xScale).ticks(seconds.length);
+        const yAxis = d3.axisLeft(yScale).ticks(5);
+
+        // Append x-axis
+        svg
+            .append('g')
+            .attr('transform', `translate(0,${height})`)
+            .call(xAxis)
+            .append('text')
+            .attr('x', width / 2)
+            .attr('y', 30)
+            .attr('fill', 'black')
+            .attr('text-anchor', 'middle')
+            .text('Time (Seconds)');
+
+        // Append y-axis
+        svg
+            .append('g')
+            .call(yAxis)
+            .append('text')
+            .attr('transform', 'rotate(-90)')
+            .attr('x', -height / 2)
+            .attr('y', -40)
+            .attr('fill', 'black')
+            .attr('text-anchor', 'middle')
+            .text('ECG Value (mV)');
+
+        // Draw line
+        const line = d3
+            .line()
+            .x((_, i) => xScale(seconds[i]))
+            .y((d) => yScale(d));
+
+        svg
+            .append('path')
+            .datum(values)
+            .attr('fill', 'none')
+            .attr('stroke', 'steelblue')
+            .attr('stroke-width', 2)
+            .attr('d', line);
+
+        // Add data points
+        svg
+            .selectAll('circle')
+            .data(values)
+            .enter()
+            .append('circle')
+            .attr('cx', (_, i) => xScale(seconds[i]))
+            .attr('cy', (d) => yScale(d))
+            .attr('r', 4)
+            .attr('fill', 'red')
+            .attr('stroke', 'black')
+            .attr('stroke-width', 0.5);
+
+        // Add hover tooltip for data points
+        const tooltip = d3
+            .select('body')
+            .append('div')
+            .style('position', 'absolute')
+            .style('background', '#fff')
+            .style('border', '1px solid #ccc')
+            .style('padding', '5px')
+            .style('border-radius', '4px')
+            .style('box-shadow', '0px 2px 4px rgba(0, 0, 0, 0.1)')
+            .style('display', 'none');
+
+        svg
+            .selectAll('circle')
+            .on('mouseover', function (event, d) {
+                tooltip
+                    .html(`Value: ${d}`)
+                    .style('display', 'block')
+                    .style('left', `${event.pageX + 10}px`)
+                    .style('top', `${event.pageY - 20}px`);
+            })
+            .on('mouseout', () => {
+                tooltip.style('display', 'none');
+            });
+    }
+
+    // Function to populate the table with index and ECG values
+    function populateTable(data) {
+        const tableBody = document.querySelector('#ecgTable tbody');
+        tableBody.innerHTML = ''; // Clear any existing rows
+
+        data.forEach((d, index) => {
             const row = document.createElement('tr');
-
-            const timeCell = document.createElement('td');
-            timeCell.textContent = time; // Sequential time value
-            row.appendChild(timeCell);
-
+            const indexCell = document.createElement('td');
             const valueCell = document.createElement('td');
-            valueCell.textContent = values[index].toFixed(2); // ECG value
+
+            // Add the index and ECG value to the cells
+            indexCell.textContent = index; // Index of the data point
+            valueCell.textContent = d.value; // ECG value for this data point
+
+            // Append the cells to the row
+            row.appendChild(indexCell);
             row.appendChild(valueCell);
 
+            // Append the row to the table body
             tableBody.appendChild(row);
         });
     }
-
-    function renderChart(times, values) {
-        if (times.length === 0 || values.length === 0) {
-            console.error('No data available for rendering.');
-            return;
-        }
-
-        // Clear the canvas for fresh rendering
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // Calculate scales and axes ranges
-        const { xScale, yScale, xTicks, yTicks } = calculateScales(times, values);
-
-        drawAxes(xScale, yScale, xTicks, yTicks, times, values);
-        drawLineChart(xScale, yScale, times, values);
-        drawDataPoints(xScale, yScale, times, values);
-    }
-
-    function calculateScales(times, values) {
-        const xMin = Math.min(...times);
-        const xMax = Math.max(...times);
-        const yMin = Math.min(...values);
-        const yMax = Math.max(...values);
-
-        const xScale = (time) =>
-            margin.left +
-            ((time - xMin) / (xMax - xMin)) * (canvas.width - margin.left - margin.right);
-        const yScale = (value) =>
-            canvas.height -
-            margin.bottom -
-            ((value - yMin) / (yMax - yMin)) * (canvas.height - margin.top - margin.bottom);
-
-        // Generate ticks for axes
-        const xTicks = times.map((t) => t); // Use numeric time values directly
-        const yTicks = Array.from(
-            { length: 5 },
-            (_, i) => yMin + (i * (yMax - yMin)) / 4
-        );
-
-        return { xScale, yScale, xTicks, yTicks };
-    }
-
-    function drawAxes(xScale, yScale, xTicks, yTicks, times, values) {
-        // Draw X-Axis
-        ctx.beginPath();
-        ctx.moveTo(margin.left, canvas.height - margin.bottom);
-        ctx.lineTo(canvas.width - margin.right, canvas.height - margin.bottom);
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        // Draw Y-Axis
-        ctx.beginPath();
-        ctx.moveTo(margin.left, margin.top);
-        ctx.lineTo(margin.left, canvas.height - margin.bottom);
-        ctx.stroke();
-
-        // Draw X-Axis Labels (Time)
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'top';
-        xTicks.forEach((label, i) => {
-            const x = xScale(times[i]);
-            if (x > margin.left && x < canvas.width - margin.right) {
-                ctx.fillText(label, x, canvas.height - margin.bottom + 10);
-            }
-        });
-
-        // Draw Y-Axis Labels (Values)
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'middle';
-        yTicks.forEach((label) => {
-            const y = yScale(label);
-            ctx.fillText(label.toFixed(2), margin.left - 10, y);
-        });
-    }
-
-    function drawLineChart(xScale, yScale, times, values) {
-        ctx.beginPath();
-        ctx.moveTo(xScale(times[0]), yScale(values[0]));
-
-        for (let i = 1; i < times.length; i++) {
-            ctx.lineTo(xScale(times[i]), yScale(values[i]));
-        }
-
-        ctx.strokeStyle = 'steelblue';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-    }
-
-    function drawDataPoints(xScale, yScale, times, values) {
-        ctx.fillStyle = 'red';
-        for (let i = 0; i < times.length; i++) {
-            const x = xScale(times[i]);
-            const y = yScale(values[i]);
-            ctx.beginPath();
-            ctx.arc(x, y, 5, 0, 2 * Math.PI);
-            ctx.fill();
-        }
-    }
-
-    // Update canvas and re-fetch data on window resize
-    window.addEventListener('resize', () => {
-        resizeCanvas();
-        fetch('http://localhost:3000/api/observations')
-            .then((response) => response.json())
-            .then((data) => {
-                const times = data.map((d) => d.time);
-                const values = data.map((d) => d.value);
-                populateTable(times, values);
-                renderChart(times, values);
-            })
-            .catch((error) => console.error('Error loading data during resize:', error));
-    });
 });
