@@ -14,6 +14,16 @@
   </header>
 
   <main class="main-content">
+    <!-- File Upload Section -->
+    <section id="file-upload-section">
+      <form id="uploadForm">
+        <label for="fileInput">Upload .h5 File:</label>
+        <input type="file" id="fileInput" name="file" accept=".h5" />
+        <button type="submit">Upload</button>
+      </form>
+      <p id="uploadStatus"></p>
+    </section>
+
     <div id="chart-container">
       <div id="chart"></div> <!-- D3.js chart will render here -->
     </div>

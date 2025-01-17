@@ -88,3 +88,39 @@ main.main-content {
     padding: 8px;
   }
 }
+#file-upload-section {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+#uploadForm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+#fileInput {
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+#uploadForm button {
+  padding: 10px 15px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+#uploadForm button:hover {
+  background-color: #45a049;
+}
+
+#uploadStatus {
+  margin-top: 10px;
+  font-size: 1rem;
+  color: #333;
+}

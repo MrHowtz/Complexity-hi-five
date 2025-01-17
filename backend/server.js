@@ -3,26 +3,67 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const WebSocket = require('ws');
-const cors = require('cors'); // Added for CORS support
+const cors = require('cors');
+const multer = require('multer');
+const { exec } = require('child_process');
 
 // Create Express app
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// JSON file path for processed ECG data
+// Paths
 const ecgDataPath = path.join(__dirname, '..', 'output', 'fhir_observations.json');
+const dataDir = path.join(__dirname, '..', 'data');
+const pythonScriptPath = path.join(__dirname, '..', 'scripts', 'process_ecg.py'); // Updated path to the script
 
 // Middleware to parse JSON and enable CORS
 app.use(express.json());
-app.use(cors()); // Enable CORS for all routes
+app.use(cors());
+
+// Function to clear all files from the data directory except the newly uploaded file
+function clearDataFolder(excludeFile) {
+    fs.readdir(dataDir, (err, files) => {
+        if (err) {
+            console.error('Error reading data directory:', err);
+            return;
+        }
+
+        files.forEach(file => {
+            const filePath = path.join(dataDir, file);
+            // Only delete files that are NOT the newly uploaded file
+            if (file !== excludeFile) {
+                fs.unlink(filePath, (err) => {
+                    if (err) {
+                        console.error(`Error deleting file: ${file}`, err);
+                    } else {
+                        console.log(`Deleted file: ${file}`);
+                    }
+                });
+            }
+        });
+    });
+}
+
+// Set up multer for file uploads and save with original filename
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, dataDir);
+    },
+    filename: function (req, file, cb) {
+        // Ensure the uploaded file keeps its original name and extension
+        cb(null, file.originalname);
+    }
+});
+
+const upload = multer({ storage: storage });
 
 // Function to extract seconds from effectiveDateTime
 function extractSeconds(dateTime) {
-    const match = dateTime.match(/T.*:(\d{2})(?:\.\d+)?/); // Regex to capture seconds part
-    return match ? parseInt(match[1], 10) : null; // Return seconds as an integer
+    const match = dateTime.match(/T.*:(\d{2})(?:\.\d+)?/);
+    return match ? parseInt(match[1], 10) : null;
 }
 
-// REST API endpoint to fetch relevant ECG data for the graph (time, value, and seconds)
+// REST API endpoint to fetch relevant ECG data for the graph
 app.get('/api/observations', (req, res) => {
     fs.readFile(ecgDataPath, 'utf8', (err, data) => {
         if (err) {
@@ -33,16 +74,13 @@ app.get('/api/observations', (req, res) => {
         try {
             const ecgData = JSON.parse(data);
 
-            // Map and filter the data to include time, value, and seconds
             const filteredData = ecgData.map((d, index) => ({
-                time: index, // Use the index as the time value
-                value: d.valueQuantity.value, // ECG value in mV
-                seconds: extractSeconds(d.effectiveDateTime), // Extracted seconds from effectiveDateTime
+                time: index,
+                value: d.valueQuantity.value,
+                seconds: extractSeconds(d.effectiveDateTime),
             }));
 
-            // Log the filtered data before sending it
             console.log("Filtered Data:", filteredData);
-
             res.json(filteredData);
         } catch (parseErr) {
             console.error('Error parsing JSON:', parseErr);
@@ -56,10 +94,59 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok', message: 'Service is running' });
 });
 
+// Endpoint to upload an .h5 file
+app.post('/api/upload', upload.single('file'), (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded.' });
+        }
+
+        // Clean the folder but exclude the newly uploaded file from deletion
+        clearDataFolder(req.file.originalname);
+
+        console.log(`File uploaded: ${req.file.originalname}`);
+
+        // Trigger the Python script to process the uploaded file
+        exec(`python "${pythonScriptPath}"`, (error, stdout, stderr) => {
+            if (error) {
+                console.error('Error executing script:', error);
+                return res.status(500).json({ error: 'Failed to process file.' });
+            }
+            if (stderr) {
+                console.error('Script stderr:', stderr);
+                return res.status(500).json({ error: 'Error in script execution.' });
+            }
+
+            console.log('Script output:', stdout);
+            res.json({ message: 'File uploaded and processed successfully.' });
+        });
+
+    } catch (err) {
+        console.error('Error handling upload:', err);
+        res.status(500).json({ error: 'Failed to upload file.' });
+    }
+});
+
+// Endpoint to trigger the processing of the uploaded file
+app.get('/api/process', (req, res) => {
+    exec(`python "${pythonScriptPath}"`, (error, stdout, stderr) => {
+        if (error) {
+            console.error('Error executing script:', error);
+            return res.status(500).json({ error: 'Failed to process file.' });
+        }
+        if (stderr) {
+            console.error('Script stderr:', stderr);
+            return res.status(500).json({ error: 'Error in script execution.' });
+        }
+
+        console.log('Script output:', stdout);
+        res.json({ message: 'File processed successfully.' });
+    });
+});
+
 // Create WebSocket server for real-time ECG data streaming
 const wss = new WebSocket.Server({ noServer: true });
 
-// Simulate real-time streaming
 wss.on('connection', (ws) => {
     console.log('Client connected to WebSocket');
 
@@ -78,9 +165,9 @@ wss.on('connection', (ws) => {
             if (index < ecgData.length) {
                 const d = ecgData[index];
                 ws.send(JSON.stringify({
-                    time: index, // Use the index as the time value
-                    value: d.valueQuantity.value, // ECG value in mV
-                    seconds: extractSeconds(d.effectiveDateTime), // Extracted seconds
+                    time: index,
+                    value: d.valueQuantity.value,
+                    seconds: extractSeconds(d.effectiveDateTime),
                 }));
                 index++;
             } else {
@@ -107,7 +194,7 @@ server.on('upgrade', (request, socket, head) => {
     });
 });
 
-// Error handling middleware (must come after all other handlers)
+// Error handling middleware
 app.use((err, req, res, next) => {
     console.error('Error:', err.message);
     res.status(500).json({ error: 'An internal server error occurred.' });
